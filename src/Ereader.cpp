@@ -1,3 +1,4 @@
+
 #ifndef BOARD_HAS_PSRAM
 #error "Please enable PSRAM, Arduino IDE -> tools -> PSRAM -> OPI !!!"
 #endif
@@ -6,7 +7,7 @@
 /* *** My includes ********************************************* */
 #include "wifi.hpp"
 // #include "ntp.hpp"
-#include "cred.h"
+#include "cred.hpp"
 /* *** Includes ********************************************* */
 #include <NTPClient.h>
 #include <WiFiUdp.h>
@@ -15,6 +16,7 @@
 #include "firasans.h"
 #include <Arduino.h>
 
+namespace Dashboard {
 /* *** Hardware ********************************************* */
 Button2 btn1(BUTTON_1);
 
@@ -115,28 +117,29 @@ uint8_t *get_new_frame_buffer(void) {
 
   return local_buffer;
 }
+}
 
 void setup() {
   Serial.begin(115200);
   while(!Serial);
   epd_init();
   Serial.println("Hello world");
-  framebuffer = get_new_frame_buffer();
+  // Dashboard::framebuffer = Dashboard::get_new_frame_buffer();
 
-  btn1.setPressedHandler(buttonPressed);
+  Dashboard::btn1.setPressedHandler(Dashboard::buttonPressed);
 
-  displayInfo("Connecting now");
+  Dashboard::displayInfo("Connecting now");
   connectWifi();
-  char *s = "Connected %s";
-  sprintf(s, ssid);
-  displayInfo(s);
+  char *s = "Connected %s %s";
+  sprintf(s, wifi_credentials::ssid, wifi_credentials::password);
+  Dashboard::displayInfo(s);
 
-  timeClient.begin();
+  Dashboard::timeClient.begin();
   // epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
 void loop() {
   Serial.println("Hello world");
-  btn1.loop();
+  Dashboard::btn1.loop();
   delay(2);
 }
