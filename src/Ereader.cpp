@@ -4,9 +4,12 @@
 
 
 /* *** My includes ********************************************* */
-#include "wifi.cpp"
-#include "ntp.cpp"
+#include "wifi.hpp"
+// #include "ntp.hpp"
+#include "cred.h"
 /* *** Includes ********************************************* */
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 #include "Button2.h"
 #include "epd_driver.h"
 #include "firasans.h"
@@ -49,6 +52,9 @@ char *aliceInWonderLand = {
 const int chars_in_line = 47;
 const int rows_in_page = 10;
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
 /* *** Globals ********************************************** */
 uint8_t *framebuffer;
 Cursor g_cursor = {.x = 20, .y = 60};
@@ -61,11 +67,11 @@ void reset_global_curser(void) {
   g_cursor.y = 60;
 }
 
-void displayInfo(void) {
+void displayInfo(const char* text) {
   epd_poweron();
   epd_clear();
   reset_global_curser();
-  write_string((GFXfont *)&FiraSans, "Hello world! Aya meow :3", &g_cursor.x,
+  write_string((GFXfont *)&FiraSans, text, &g_cursor.x,
                &g_cursor.y, NULL);
   epd_poweroff();
 }
@@ -89,6 +95,9 @@ void enter_deep_sleep(void) {
 /* *** Events *********************************************** */
 void buttonPressed(Button2 &b) {
   Serial.println("Button was pressed");
+  timeClient.update();
+  Serial.println(timeClient.getFormattedTime().c_str());
+  displayInfo(timeClient.getFormattedTime().c_str());
 }
 
 /* *** Setup ************************************************ */
@@ -109,17 +118,25 @@ uint8_t *get_new_frame_buffer(void) {
 
 void setup() {
   Serial.begin(115200);
+  while(!Serial);
+  epd_init();
+  Serial.println("Hello world");
   framebuffer = get_new_frame_buffer();
 
   btn1.setPressedHandler(buttonPressed);
 
+  displayInfo("Connecting now");
   connectWifi();
-  epd_init();
-  displayInfo();
+  char *s = "Connected %s";
+  sprintf(s, ssid);
+  displayInfo(s);
+
+  timeClient.begin();
   // epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
 void loop() {
+  Serial.println("Hello world");
   btn1.loop();
   delay(2);
 }
