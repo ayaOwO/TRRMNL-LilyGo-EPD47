@@ -1,6 +1,6 @@
 
 #ifndef BOARD_HAS_PSRAM
-#error "Please enable PSRAM, Arduino IDE -> tools -> PSRAM -> OPI !!!"
+#error "Please enable PSRAM, add board_build.extra_flags = -DBOARD_HAS_PSRAM"
 #endif
 
 
