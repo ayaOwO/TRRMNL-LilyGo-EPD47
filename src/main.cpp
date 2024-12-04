@@ -46,21 +46,21 @@ public:
 /* *** Contsants ******************************************** */
 const Rect_t text_area = {
     .x = 10, .y = 20, .width = EPD_WIDTH - 20, .height = EPD_HEIGHT - 10};
-const char *aliceInWonderLand = {
+// const char *aliceInWonderLand = {
 
-    "CHAPTER I.\nDown the Rabbit-Hole\n\n\nAlice was beginning to get very tired of sitting by her sister on the\nbank, and of having nothing to do: once or twice she had peeped into\nthe book her sister was reading, but it had no pictures or\nconversations in it, “and what is the use of a book,” thought Alice\n“without pictures or conversations?”\n\nSo she was considering in her own mind (as well as she could, for the\nhot day made her feel very sleepy and stupid), whether the pleasure of\nmaking a daisy-chain would be worth the trouble of getting up and\npicking the daisies, when suddenly a White Rabbit with pink eyes ran\nclose by her."
-};
+//     "CHAPTER I.\nDown the Rabbit-Hole\n\n\nAlice was beginning to get very tired of sitting by her sister on the\nbank, and of having nothing to do: once or twice she had peeped into\nthe book her sister was reading, but it had no pictures or\nconversations in it, “and what is the use of a book,” thought Alice\n“without pictures or conversations?”\n\nSo she was considering in her own mind (as well as she could, for the\nhot day made her feel very sleepy and stupid), whether the pleasure of\nmaking a daisy-chain would be worth the trouble of getting up and\npicking the daisies, when suddenly a White Rabbit with pink eyes ran\nclose by her."
+// };
 
 const int chars_in_line = 47;
 const int rows_in_page = 10;
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
+NTPClient timeClient(ntpUDP, 7200);
 
 /* *** Globals ********************************************** */
 uint8_t *framebuffer;
 Cursor g_cursor = {.x = 20, .y = 60};
-int vref = 1100;
+const int vref = 1100;
 int is_sleep = 0;
 
 /* *** Functions ******************************************** */
@@ -138,7 +138,10 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Hello world");
+  timeClient.update();
+  String time = timeClient.getFormattedTime();
+  Serial.printf("Time is %s\n", time.c_str());
+  displayInfo(time.c_str());
   btn1.loop();
-  delay(2);
+  delay(2000);
 }

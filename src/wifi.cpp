@@ -11,7 +11,7 @@
 using namespace dashboard;
 
 void dashboard::connectWifi(void) {
-  Serial.printf("Attemping to connect with %s %s\n", WIFI_CREDS.WifiName, WIFI_CREDS.Password);
+  Serial.printf("Attemping to connect with %s %s\n", WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
 
   WiFi.begin(WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
   while (WiFi.status() != WL_CONNECTED) {
@@ -19,5 +19,5 @@ void dashboard::connectWifi(void) {
       Serial.print(".");
   }
   
-  Serial.println(" CONNECTED");
+  Serial.print("CONNECTED");
 }
