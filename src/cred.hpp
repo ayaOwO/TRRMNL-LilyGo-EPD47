@@ -1,6 +1,17 @@
+/**
+ * @brief Credentials for wifi.
+ * @author Aya Kraise
+ */
+
 #pragma once
 
-namespace wifi_credentials {
-    const char* ssid;
-    const char* password;
+#include <string>
+
+namespace dashboard {
+    typedef struct {
+        const std::string WifiName;
+        const std::string Password;
+    } WifiCreds;
+
+    extern const WifiCreds WIFI_CREDS;
 }

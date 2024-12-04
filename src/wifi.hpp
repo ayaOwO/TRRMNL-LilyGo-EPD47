@@ -1,3 +1,10 @@
+/**
+ * @brief Wifi utilities.
+ * @author Aya Kraise
+ */
+
 #pragma once
 
-void connectWifi();
+namespace dashboard {
+    void connectWifi(void);
+}

@@ -1,10 +1,19 @@
-#include "cred.hpp"
+/**
+ * @copybrief wifi.hpp
+ * @author Aya Kraise
+ */
+
 #include <WiFi.h>
 
-void connectWifi() {
-  Serial.printf("Attemping to connect with %s %s\n", wifi_credentials::ssid, wifi_credentials::password);
+#include "wifi.hpp"
+#include "cred.hpp"
 
-  WiFi.begin(wifi_credentials::ssid, wifi_credentials::password);
+using namespace dashboard;
+
+void dashboard::connectWifi(void) {
+  Serial.printf("Attemping to connect with %s %s\n", WIFI_CREDS.WifiName, WIFI_CREDS.Password);
+
+  WiFi.begin(WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
