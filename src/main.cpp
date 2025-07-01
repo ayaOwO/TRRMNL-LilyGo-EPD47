@@ -10,9 +10,9 @@
 #include "cred.hpp"
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include "Button2.h"
-#include "epd_driver.h"
-#include "firasans.h"
+#include <Button2.h>
+#include <epd_driver.h>
+#include "Firasans/Firasans.h"
 #include <Arduino.h>
 
 using namespace dashboard;
