@@ -93,8 +93,9 @@ void enter_deep_sleep(void) {
 void buttonPressed(Button2 &b) {
   Serial.println("Button was pressed");
   timeClient.update();
-  Serial.println(timeClient.getFormattedTime().c_str());
-  displayInfo(timeClient.getFormattedTime().c_str());
+  String time = timeClient.getFormattedTime();
+  Serial.printf("Time is %s\n", time.c_str());
+  displayInfo(time.c_str());
 }
 
 /* *** Setup ************************************************ */
@@ -117,12 +118,11 @@ void setup() {
   Serial.begin(115200);
   while(!Serial.availableForWrite());
   epd_init();
-  Serial.println("Hello world");
   // framebuffer = get_new_frame_buffer();
 
   btn1.setPressedHandler(buttonPressed);
 
-  displayInfo("Connecting now");
+  displayInfo("Connecting...");
   connectWifi();
   char s[50] = { 0 };
   sprintf(s, "Connected %s %s", WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
