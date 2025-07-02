@@ -188,28 +188,6 @@ void setup()
 
   spotify = new Spotify(SPOTIFY_CREDS.ClientId.c_str(), SPOTIFY_CREDS.ClientSecret.c_str(), SPOTIFY_CREDS.RefreshToken.c_str(), 80, true, 3);
   Serial.printf("Authentication %s\n", spotify->is_auth() ? "succeeded" : "failed");
-
-  Serial.println("Starting token fetch...");
-  bool isSuccess = spotify->get_access_token();
-  int tries = 5;
-  while (!isSuccess && tries > 0)
-  {
-    Serial.println("get token failed, retrying...");
-    delay(2000);
-    isSuccess = spotify->get_access_token();
-    tries--;
-  }
-
-  if (!isSuccess)
-  {
-    Serial.println("Failed to authenticate after retries.");
-  }
-
-  if (!spotify->has_access_token())
-  {
-    Serial.println("No valid access token available after authentication!");
-  }
-
   // epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
