@@ -1,8 +1,22 @@
-
 #ifndef BOARD_HAS_PSRAM
 #error "Please enable PSRAM, add board_build.extra_flags = -DBOARD_HAS_PSRAM"
 #endif
-
+// #define DISABLE_PLAYER
+// #define DISABLE_ALBUM
+// #define DISABLE_ARTIST
+// #define DISABLE_AUDIOBOOKS
+// #define DISABLE_CATEGORIES
+// #define DISABLE_CHAPTERS
+// #define DISABLE_EPISODES
+// #define DISABLE_GENRES
+// #define DISABLE_MARKETS
+// #define DISABLE_PLAYLISTS
+// #define DISABLE_SEARCH
+// #define DISABLE_SHOWS
+// #define DISABLE_TRACKS
+// #define DISABLE_USER
+// #define DISABLE_SIMPLIFIED
+#define DISABLE_WEB_SERVER
 
 /* *** My includes ********************************************* */
 #include "wifi.hpp"
@@ -12,6 +26,7 @@
 #include <Button2.h>
 #include <epd_driver.h>
 #include "Firasans/Firasans.h"
+#include <SpotifyEsp32.h>
 #include <Arduino.h>
 
 using namespace dashboard;
@@ -20,18 +35,21 @@ using namespace dashboard;
 Button2 btn1(BUTTON_1);
 
 /* *** Classes ********************************************** */
-struct Cursor {
+struct Cursor
+{
   int x;
   int y;
 };
 
-class StringBuffer {
+class StringBuffer
+{
 public:
   char *head;
   char *curr;
   size_t size;
 
-  StringBuffer(size_t size) {
+  StringBuffer(size_t size)
+  {
     this->size = size;
     this->head = (char *)ps_calloc(sizeof(*this->head), size);
     this->curr = this->head;
@@ -50,21 +68,24 @@ const int chars_in_line = 47;
 const int rows_in_page = 10;
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, 7200);
+NTPClient timeClient(ntpUDP, 3 * 3600);
 
 /* *** Globals ********************************************** */
 uint8_t *framebuffer;
 Cursor g_cursor = {.x = 20, .y = 60};
 const int vref = 1100;
 int is_sleep = 0;
+Spotify *spotify = nullptr;
 
 /* *** Functions ******************************************** */
-void reset_global_curser(void) {
+void reset_global_curser(void)
+{
   g_cursor.x = 20;
   g_cursor.y = 60;
 }
 
-void displayInfo(const char* text) {
+void displayInfo(const char *text)
+{
   epd_poweron();
   epd_clear();
   reset_global_curser();
@@ -73,7 +94,8 @@ void displayInfo(const char* text) {
   epd_poweroff();
 }
 
-void enter_deep_sleep(void) {
+void enter_deep_sleep(void)
+{
   delay(1000);
   epd_clear_area(text_area);
   reset_global_curser();
@@ -90,21 +112,41 @@ void enter_deep_sleep(void) {
 }
 
 /* *** Events *********************************************** */
-void buttonPressed(Button2 &b) {
+void buttonPressed(Button2 &b)
+{
   Serial.println("Button was pressed");
-  timeClient.update();
-  String time = timeClient.getFormattedTime();
-  Serial.printf("Time is %s\n", time.c_str());
-  displayInfo(time.c_str());
+  String currentTrack = spotify->current_track_name();
+  Serial.printf("Currently playing: %s\n", currentTrack.c_str());
+
+  displayInfo(currentTrack.c_str());
 }
 
 /* *** Setup ************************************************ */
-uint8_t *get_new_frame_buffer(void) {
+void logTokens(Spotify *sp)
+{
+  user_tokens tokens = sp->get_user_tokens();
+  Serial.println("---- Spotify Tokens ----");
+  Serial.printf("Client ID: %s\n", tokens.client_id);
+  Serial.printf("Client Secret: %s\n", tokens.client_secret);
+  Serial.printf("Refresh Token: %s\n", tokens.refresh_token);
+
+  if (sp->has_access_token())
+  {
+    Serial.println("Access token is currently valid.");
+  }
+  else
+  {
+    Serial.println("No valid access token available.");
+  }
+}
+uint8_t *get_new_frame_buffer(void)
+{
   uint8_t *local_buffer = NULL;
 
   local_buffer =
       (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT / 2);
-  if (!local_buffer) {
+  if (!local_buffer)
+  {
     Serial.println("alloc memory failed !!!");
     while (1)
       ;
@@ -113,10 +155,23 @@ uint8_t *get_new_frame_buffer(void) {
 
   return local_buffer;
 }
+void setTimezone()
+{
 
-void setup() {
+  // Israel TZ with DST rules
+  configTime(0, 0, "pool.ntp.org"); // sync time first
+
+  // Set timezone to Israel (Jerusalem) with DST rules
+  // "IST-2IDT,M3.5.0/2,M10.5.0/3"
+  setenv("TZ", "IST-2IDT,M3.5.0/2,M10.5.0/3", 1);
+  tzset();
+}
+
+void setup()
+{
   Serial.begin(115200);
-  while(!Serial.availableForWrite());
+  while (!Serial.availableForWrite())
+    ;
   epd_init();
   // framebuffer = get_new_frame_buffer();
 
@@ -124,19 +179,43 @@ void setup() {
 
   displayInfo("Connecting...");
   connectWifi();
-  char s[50] = { 0 };
-  sprintf(s, "Connected %s %s", WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
+  char s[50] = {0};
+  sprintf(s, "Connected as %s %s %s", WiFi.localIP().toString().c_str(), WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
+
   displayInfo(s);
 
-  timeClient.begin();
+  setTimezone();
+
+  spotify = new Spotify(SPOTIFY_CREDS.ClientId.c_str(), SPOTIFY_CREDS.ClientSecret.c_str(), SPOTIFY_CREDS.RefreshToken.c_str(), 80, true, 3);
+  Serial.printf("Authentication %s\n", spotify->is_auth() ? "succeeded" : "failed");
+
+  Serial.println("Starting token fetch...");
+  bool isSuccess = spotify->get_access_token();
+  int tries = 5;
+  while (!isSuccess && tries > 0)
+  {
+    Serial.println("get token failed, retrying...");
+    delay(2000);
+    isSuccess = spotify->get_access_token();
+    tries--;
+  }
+
+  if (!isSuccess)
+  {
+    Serial.println("Failed to authenticate after retries.");
+  }
+
+  if (!spotify->has_access_token())
+  {
+    Serial.println("No valid access token available after authentication!");
+  }
+
   // epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
-void loop() {
-  timeClient.update();
-  String time = timeClient.getFormattedTime();
-  Serial.printf("Time is %s\n", time.c_str());
-  displayInfo(time.c_str());
+void loop()
+{
   btn1.loop();
-  delay(2000);
+
+  delay(2);
 }
