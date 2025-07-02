@@ -19,10 +19,9 @@
 #define DISABLE_WEB_SERVER
 
 /* *** My includes ********************************************* */
+#include "weather.hpp"
 #include "wifi.hpp"
 #include "cred.hpp"
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 #include <Button2.h>
 #include <epd_driver.h>
 #include "Firasans/Firasans.h"
@@ -67,9 +66,6 @@ const Rect_t text_area = {
 const int chars_in_line = 47;
 const int rows_in_page = 10;
 
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, 3 * 3600);
-
 /* *** Globals ********************************************** */
 uint8_t *framebuffer;
 Cursor g_cursor = {.x = 20, .y = 60};
@@ -84,7 +80,7 @@ void reset_global_curser(void)
   g_cursor.y = 60;
 }
 
-void displayInfo(const char *text)
+void displayInfo(consst char *text)
 {
   epd_poweron();
   epd_clear();
@@ -159,12 +155,28 @@ void setTimezone()
 {
 
   // Israel TZ with DST rules
-  configTime(0, 0, "pool.ntp.org"); // sync time first
+  configTzTime("Asia/Jerusalem", "3.il.pool.ntp.org", "1.asia.pool.ntp.org", "3.asia.pool.ntp.org"); // sync time first
 
-  // Set timezone to Israel (Jerusalem) with DST rules
-  // "IST-2IDT,M3.5.0/2,M10.5.0/3"
-  setenv("TZ", "IST-2IDT,M3.5.0/2,M10.5.0/3", 1);
-  tzset();
+  struct tm timeinfo;
+  while (!getLocalTime(&timeinfo))
+  {
+    Serial.println("Waiting for NTP sync...");
+    delay(1000);
+  }
+
+  Serial.println("Time synchronized");
+}
+
+std::string GetFormattedTime()
+{
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo))
+  {
+    char buffer[20];
+    strftime(buffer, sizeof(buffer), "%H:%M %d.%m.%Y", &timeinfo);
+    return std::string(buffer);
+  }
+  return std::string("00:00 00.00.0000");
 }
 
 void setup()
@@ -181,19 +193,27 @@ void setup()
   connectWifi();
   char s[50] = {0};
   sprintf(s, "Connected as %s %s %s", WiFi.localIP().toString().c_str(), WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
-
-  displayInfo(s);
-
   setTimezone();
 
-  spotify = new Spotify(SPOTIFY_CREDS.ClientId.c_str(), SPOTIFY_CREDS.ClientSecret.c_str(), SPOTIFY_CREDS.RefreshToken.c_str(), 80, true, 3);
-  Serial.printf("Authentication %s\n", spotify->is_auth() ? "succeeded" : "failed");
+  // spotify = new Spotify(SPOTIFY_CREDS.ClientId.c_str(), SPOTIFY_CREDS.ClientSecret.c_str(), SPOTIFY_CREDS.RefreshToken.c_str(), 80, true, 3);
+
   // epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
 void loop()
 {
+  char s[100] = {0};
   btn1.loop();
-
-  delay(2);
+  WeatherResponse weather = GetWeatherForecast();
+  sprintf(s, "%s\nMax %.2f%s %.2f%s %d%s",
+          GetFormattedTime().c_str(),
+          weather.daily.apparent_temperature_max[0],
+          weather.daily_units.apparent_temperature_max.c_str(),
+          weather.daily.apparent_temperature_min[0],
+          weather.daily_units.apparent_temperature_min.c_str(),
+          weather.daily.precipitation_probability_max[0],
+          weather.daily_units.precipitation_probability_max.c_str());
+  displayInfo(s);
+  Serial.println(strlen(s));
+  delay(5000);
 }
