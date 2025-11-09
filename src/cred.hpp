@@ -19,6 +19,12 @@ namespace dashboard {
         const std::string RefreshToken;
     } SpotifyCreds;
 
+    typedef struct {
+        const std::string Username;
+        const std::string Password;
+    } CouchDBCreds;
+
     extern const WifiCreds WIFI_CREDS;
     extern const SpotifyCreds SPOTIFY_CREDS;
+    extern const CouchDBCreds COUCHDB_CREDS;
 }

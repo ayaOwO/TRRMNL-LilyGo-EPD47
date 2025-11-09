@@ -22,6 +22,7 @@
 #include "weather.hpp"
 #include "wifi.hpp"
 #include "cred.hpp"
+#include "obsidian.hpp"
 #include <Button2.h>
 #include <epd_driver.h>
 #include "Firasans/Firasans.h"
@@ -80,7 +81,7 @@ void reset_global_curser(void)
   g_cursor.y = 60;
 }
 
-void displayInfo(consst char *text)
+void displayInfo(const char *text)
 {
   epd_poweron();
   epd_clear();
@@ -213,7 +214,25 @@ void loop()
           weather.daily_units.apparent_temperature_min.c_str(),
           weather.daily.precipitation_probability_max[0],
           weather.daily_units.precipitation_probability_max.c_str());
-  displayInfo(s);
-  Serial.println(strlen(s));
+  Obsidian* obs = new Obsidian();
+  std::vector<std::string> docs = obs->queryDocument("tasks.md");
+  Serial.println("---- Obsidian Documents ----");
+
+  // Concatenate all documents into a single string separated by newlines
+  std::string combined;
+  for (const auto& doc : docs) {
+    Serial.println(doc.c_str());
+    if (!combined.empty()) combined += "\n";
+    combined += doc;
+  }
+  // Display combined docs if any, otherwise fall back to weather string
+  if (!combined.empty()) {
+    displayInfo(combined.c_str());
+    Serial.printf("Displayed combined docs (%zu bytes)\n", combined.size());
+  } else {
+    displayInfo(s);
+    Serial.println(strlen(s));
+  }
+
   delay(5000);
 }
