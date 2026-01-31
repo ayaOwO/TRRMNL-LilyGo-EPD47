@@ -1,22 +1,6 @@
 #ifndef BOARD_HAS_PSRAM
 #error "Please enable PSRAM, add board_build.extra_flags = -DBOARD_HAS_PSRAM"
 #endif
-// #define DISABLE_PLAYER
-// #define DISABLE_ALBUM
-// #define DISABLE_ARTIST
-// #define DISABLE_AUDIOBOOKS
-// #define DISABLE_CATEGORIES
-// #define DISABLE_CHAPTERS
-// #define DISABLE_EPISODES
-// #define DISABLE_GENRES
-// #define DISABLE_MARKETS
-// #define DISABLE_PLAYLISTS
-// #define DISABLE_SEARCH
-// #define DISABLE_SHOWS
-// #define DISABLE_TRACKS
-// #define DISABLE_USER
-// #define DISABLE_SIMPLIFIED
-#define DISABLE_WEB_SERVER
 
 /* *** My includes ********************************************* */
 #include "wifi.hpp"
