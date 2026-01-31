@@ -65,7 +65,7 @@ int render_frame()
   DisplayConfig config = get_display_config();
   if (!config.success) {
     Serial.println("Failed to get display config");
-    return;
+    return 60;
   }
   bool success = fetch_and_convert_image(config.image_url.c_str(), temp, EPD_WIDTH * EPD_HEIGHT / 2);
   Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
