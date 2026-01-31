@@ -17,25 +17,10 @@ using namespace dashboard;
 /* *** Hardware ********************************************* */
 Button2 btn1(BUTTON_1);
 
-/* *** Classes ********************************************** */
-struct Cursor
-{
-  int x;
-  int y;
-};
-
 /* *** Contsants ******************************************** */
-const Rect_t text_area = {
-    .x = 0, .y = 0, .width = EPD_WIDTH, .height = EPD_HEIGHT / 2};
-
-const int chars_in_line = 47;
-const int rows_in_page = 10;
 
 /* *** Globals ********************************************** */
 uint8_t *framebuffer;
-Cursor g_cursor = {.x = 20, .y = 60};
-const int vref = 1100;
-int is_sleep = 0;
 
 /* *** Functions ******************************************** */
 uint8_t *init_framebuffer(void);
