@@ -40,21 +40,6 @@ void enter_deep_sleep(void)
 void buttonPressed(Button2 &b)
 {
   Serial.println("Button was pressed");
-  uint8_t * temp = init_framebuffer();
-  DisplayConfig config = get_display_config();
-  if (!config.success) {
-    Serial.println("Failed to get display config");
-    return;
-  }
-  bool success = fetch_and_convert_image(config.image_url.c_str(), temp, EPD_WIDTH * EPD_HEIGHT / 2);
-  Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
-  epd_copy_to_framebuffer(epd_full_screen(), temp, framebuffer);
-
-  epd_poweron();
-  epd_clear();
-  epd_draw_grayscale_image(epd_full_screen(), framebuffer);
-  epd_poweroff();
-  heap_caps_free(temp);
 }
 
 /* *** Setup ************************************************ */
@@ -74,6 +59,26 @@ uint8_t *init_framebuffer(void)
   return local_framebuffer;
 }
 
+int render_frame()
+{
+  uint8_t * temp = init_framebuffer();
+  DisplayConfig config = get_display_config();
+  if (!config.success) {
+    Serial.println("Failed to get display config");
+    return;
+  }
+  bool success = fetch_and_convert_image(config.image_url.c_str(), temp, EPD_WIDTH * EPD_HEIGHT / 2);
+  Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
+  epd_copy_to_framebuffer(epd_full_screen(), temp, framebuffer);
+
+  epd_poweron();
+  epd_clear();
+  epd_draw_grayscale_image(epd_full_screen(), framebuffer);
+  epd_poweroff();
+  heap_caps_free(temp);
+  return config.refresh_rate;
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -91,6 +96,6 @@ void setup()
 void loop()
 {
   btn1.loop();
-  Serial.println("Awaiting button press...");
-  delay(100);
+  int timeout = render_frame();
+  delay(timeout * 1000);
 }
