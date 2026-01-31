@@ -1,10 +1,13 @@
 #include <Arduino.h>
+#include <ArduinoJson.h> // Required: install via PlatformIO lib_deps
 #include <esp_http_client.h>
 #include <esp_heap_caps.h>
 #include <lodepng.h>
+#include "trmnl.hpp"
 
-#define IMAGE_URL "http://192.168.1.220:4567/storage/images/generated/8466ad6c-e505-40f9-9c89-4b4750d310f6.png"
-#define MAX_HTTP_BUFFER (860 * 540)
+#define API_URL "http://192.168.1.220:4567/api/display"
+#define ACCESS_TOKEN "LcFaWmFWLCBLjla0jrq4"
+#define MAX_HTTP_BUFFER (960 * 540)
 
 typedef struct
 {
@@ -39,9 +42,49 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-bool fetch_and_convert_image(uint8_t *out_buf, size_t out_buf_size)
+DisplayConfig get_display_config() {
+    DisplayConfig config = {"", 900, false};
+    
+    // Using a smaller buffer for JSON than the image buffer
+    http_buf_t json_buf;
+    json_buf.capacity = 2048; 
+    json_buf.size = 0;
+    json_buf.data = (uint8_t*)malloc(json_buf.capacity);
+
+    if (!json_buf.data) return config;
+
+    esp_http_client_config_t cfg = {
+        .url = API_URL,
+        .event_handler = http_event_handler,
+        .user_data = &json_buf,
+    };
+
+    esp_http_client_handle_t client = esp_http_client_init(&cfg);
+    esp_http_client_set_header(client, "Access-Token", ACCESS_TOKEN);
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+
+    if (esp_http_client_perform(client) == ESP_OK) {
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, (char*)json_buf.data);
+
+        if (!error) {
+            config.image_url = doc["image_url"].as<String>();
+            config.refresh_rate = doc["refresh_rate"].as<int>();
+            config.success = true;
+            Serial.printf("API Success! URL: %s, Refresh: %d\n", config.image_url.c_str(), config.refresh_rate);
+        } else {
+            Serial.printf("JSON Parse Failed: %s\n", error.c_str());
+        }
+    }
+
+    esp_http_client_cleanup(client);
+    free(json_buf.data);
+    return config;
+}
+
+bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_size)
 {
-    Serial.printf("Starting fetch from: %s", IMAGE_URL);
+    Serial.printf("Starting fetch from: %s", url);
 
     // 1. Allocate Buffer
     http_buf_t http_buf;
@@ -57,7 +100,7 @@ bool fetch_and_convert_image(uint8_t *out_buf, size_t out_buf_size)
 
     // 2. HTTP Fetch
     esp_http_client_config_t cfg = {
-        .url = IMAGE_URL,
+        .url = url,
         .event_handler = http_event_handler,
         .user_data = &http_buf};
 

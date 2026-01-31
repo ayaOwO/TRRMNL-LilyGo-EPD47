@@ -9,7 +9,6 @@
 #include <epd_driver.h>
 // #include "Firasans/Firasans.h"
 #include <Arduino.h>
-#include "pic2.h"
 #include "trmnl.hpp"
 
 using namespace dashboard;
@@ -44,7 +43,13 @@ void buttonPressed(Button2 &b)
   epd_clear();
   Serial.println("Button was pressed");
   uint8_t * temp = init_framebuffer();
-  bool success = fetch_and_convert_image(temp, EPD_WIDTH * EPD_HEIGHT / 2);
+  DisplayConfig config = get_display_config();
+  if (!config.success) {
+    Serial.println("Failed to get display config");
+    epd_poweroff();
+    return;
+  }
+  bool success = fetch_and_convert_image(config.image_url.c_str(), temp, EPD_WIDTH * EPD_HEIGHT / 2);
   Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
   epd_copy_to_framebuffer(epd_full_screen(), temp, framebuffer);
   epd_draw_grayscale_image(epd_full_screen(), framebuffer);
