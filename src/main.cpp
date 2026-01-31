@@ -180,10 +180,32 @@ std::string GetFormattedTime()
   return std::string("00:00 00.00.0000");
 }
 
+char *concatVector(const std::vector<const char *> &vec)
+{
+  // Calculate total length
+  size_t totalLen = 0;
+  for (const char *s : vec)
+  {
+    totalLen += strlen(s);
+  }
+
+  // +1 for null terminator
+  char *result = new char[totalLen + 1];
+  result[0] = '\0'; // start with empty string
+
+  // Concatenate all strings
+  for (const char *s : vec)
+  {
+    strcat(result, s);
+  }
+
+  return result;
+}
+
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial.availableForWrite())
+  //while (!Serial.availableForWrite())
     ;
   epd_init();
   // framebuffer = get_new_frame_buffer();
@@ -205,8 +227,8 @@ void loop()
 {
   char s[100] = {0};
   btn1.loop();
-  WeatherResponse weather = GetWeatherForecast();
-  sprintf(s, "%s\nMax %.2f%s %.2f%s %d%s",
+  //WeatherResponse weather = GetWeatherForecast();
+  /*sprintf(s, "%s\nMax %.2f%s %.2f%s %d%s",
           GetFormattedTime().c_str(),
           weather.daily.apparent_temperature_max[0],
           weather.daily_units.apparent_temperature_max.c_str(),
@@ -214,25 +236,15 @@ void loop()
           weather.daily_units.apparent_temperature_min.c_str(),
           weather.daily.precipitation_probability_max[0],
           weather.daily_units.precipitation_probability_max.c_str());
-  Obsidian* obs = new Obsidian();
-  std::vector<std::string> docs = obs->queryDocument("tasks.md");
-  Serial.println("---- Obsidian Documents ----");
-
-  // Concatenate all documents into a single string separated by newlines
-  std::string combined;
-  for (const auto& doc : docs) {
-    Serial.println(doc.c_str());
-    if (!combined.empty()) combined += "\n";
-    combined += doc;
-  }
-  // Display combined docs if any, otherwise fall back to weather string
-  if (!combined.empty()) {
-    displayInfo(combined.c_str());
-    Serial.printf("Displayed combined docs (%zu bytes)\n", combined.size());
-  } else {
-    displayInfo(s);
-    Serial.println(strlen(s));
-  }
-
-  delay(5000);
+  */
+  Obsidian *obs = new Obsidian();
+  std::vector<const char *> docs = obs->queryDocument("tasks.md");
+  // Display combined docs if buffer contains anything, otherwise fall back to weather string
+  char *concatenated = concatVector(docs);
+  
+  displayInfo(concatenated);
+  Serial.println(strlen(concatenated));
+  
+  
+  delay(10000);
 }
