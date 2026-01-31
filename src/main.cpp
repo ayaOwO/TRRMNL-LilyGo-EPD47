@@ -9,6 +9,7 @@
 #include <epd_driver.h>
 // #include "Firasans/Firasans.h"
 #include <Arduino.h>
+#include "trmnl.hpp"
 
 using namespace dashboard;
 
@@ -53,6 +54,8 @@ void enter_deep_sleep(void)
 void buttonPressed(Button2 &b)
 {
   Serial.println("Button was pressed");
+  bool success = fetch_and_convert_image(framebuffer, EPD_WIDTH * EPD_HEIGHT);
+  Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
   epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
@@ -61,7 +64,7 @@ uint8_t *get_new_frame_buffer(void)
 {
   uint8_t *local_buffer = NULL;
 
-  local_buffer = (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT / 2);
+  local_buffer = (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT);
   // framebuffer = (uint8_t *)heap_caps_malloc(EPD_WIDTH * EPD_HEIGHT / 2, MALLOC_CAP_SPIRAM);
   if (!local_buffer)
   {
@@ -69,7 +72,7 @@ uint8_t *get_new_frame_buffer(void)
     while (1)
       ;
   }
-  memset(local_buffer, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+  memset(local_buffer, 0xFF, EPD_WIDTH * EPD_HEIGHT);
 
   return local_buffer;
 }
@@ -77,26 +80,19 @@ uint8_t *get_new_frame_buffer(void)
 void setup()
 {
   Serial.begin(115200);
-  // while (!Serial.availableForWrite())
-  ;
+  while (!Serial.availableForWrite());
+  Serial.println("Dashboard starting...");
   epd_init();
-  // framebuffer = get_new_frame_buffer();
+  framebuffer = get_new_frame_buffer();
 
   btn1.setPressedHandler(buttonPressed);
 
   connectWifi();
-  char s[50] = {0};
-  Serial.printf("Connected as %s %s %s", WiFi.localIP().toString().c_str(), WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
-
   
-  epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 }
 
 void loop()
 {
-  char s[100] = {0};
   btn1.loop();
-
-
-  delay(10000);
+  delay(100);
 }

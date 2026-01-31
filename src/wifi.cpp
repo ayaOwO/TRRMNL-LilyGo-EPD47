@@ -19,5 +19,5 @@ void dashboard::connectWifi(void) {
       Serial.print(".");
   }
   
-  Serial.print("CONNECTED");
+  Serial.printf("CONNECTED, IP address: %s\n", WiFi.localIP().toString().c_str());
 }
