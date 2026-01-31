@@ -2,7 +2,7 @@
 #include <esp_heap_caps.h> // Required for PSRAM allocation
 #include <lodepng.h>
 
-#define IMAGE_URL "http://192.168.1.220:4567/storage/images/generated/2f8a6d8b-e6ea-44ea-8e68-f7bcf62c5499.png"
+#define IMAGE_URL "http://192.168.1.220:4567/storage/images/generated/490f94b9-83c1-48a7-932c-a347decccfb7.png"
 #define MAX_HTTP_BUFFER (860 * 540) // 512KB - adjust based on your expected PNG size
 
 typedef struct {
@@ -33,15 +33,13 @@ static esp_err_t http_event_handler(esp_http_client_event_t* evt)
 
 bool fetch_and_convert_image(uint8_t* out_buf, size_t out_buf_size)
 {
-    // Pre-allocate the HTTP buffer in PSRAM to prevent fragmentation
+    // --- 1. HTTP FETCH (Unchanged) ---
     http_buf_t http_buf;
     http_buf.size = 0;
     http_buf.capacity = MAX_HTTP_BUFFER;
     http_buf.data = (uint8_t*)heap_caps_malloc(MAX_HTTP_BUFFER, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 
-    if (!http_buf.data) {
-        return false;
-    }
+    if (!http_buf.data) return false;
 
     esp_http_client_config_t cfg = {
         .url = IMAGE_URL,
@@ -50,22 +48,16 @@ bool fetch_and_convert_image(uint8_t* out_buf, size_t out_buf_size)
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
-    if (!client) {
-        free(http_buf.data);
-        return false;
-    }
-
     if (esp_http_client_perform(client) != ESP_OK) {
         esp_http_client_cleanup(client);
         free(http_buf.data);
         return false;
     }
 
-    // ---- PNG DECODE (grayscale) ----
+    // --- 2. PNG DECODE ---
     uint8_t* decoded_image = NULL;
     unsigned width = 0, height = 0;
 
-    // Use LodePNG to decode from the PSRAM buffer
     unsigned error = lodepng_decode_memory(
         &decoded_image, 
         &width, 

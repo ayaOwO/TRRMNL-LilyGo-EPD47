@@ -9,6 +9,7 @@
 #include <epd_driver.h>
 // #include "Firasans/Firasans.h"
 #include <Arduino.h>
+#include "pic2.h"
 #include "trmnl.hpp"
 
 using namespace dashboard;
@@ -25,7 +26,7 @@ struct Cursor
 
 /* *** Contsants ******************************************** */
 const Rect_t text_area = {
-    .x = 0, .y = 0, .width = EPD_WIDTH, .height = EPD_HEIGHT};
+    .x = 0, .y = 0, .width = EPD_WIDTH, .height = EPD_HEIGHT / 2};
 
 const int chars_in_line = 47;
 const int rows_in_page = 10;
@@ -37,6 +38,7 @@ const int vref = 1100;
 int is_sleep = 0;
 
 /* *** Functions ******************************************** */
+uint8_t *init_framebuffer(void);
 
 void enter_deep_sleep(void)
 {
@@ -53,37 +55,42 @@ void enter_deep_sleep(void)
 /* *** Events *********************************************** */
 void buttonPressed(Button2 &b)
 {
+  epd_poweron();
+  epd_clear();
   Serial.println("Button was pressed");
-  bool success = fetch_and_convert_image(framebuffer, EPD_WIDTH * EPD_HEIGHT);
+  uint8_t * temp = init_framebuffer();
+  bool success = fetch_and_convert_image(temp, EPD_WIDTH * EPD_HEIGHT / 2);
   Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
+  epd_copy_to_framebuffer(epd_full_screen(), temp, framebuffer);
   epd_draw_grayscale_image(epd_full_screen(), framebuffer);
+  epd_poweroff();
+  heap_caps_free(temp);
 }
 
 /* *** Setup ************************************************ */
-uint8_t *get_new_frame_buffer(void)
+uint8_t *init_framebuffer(void)
 {
-  uint8_t *local_buffer = NULL;
+  uint8_t * local_framebuffer= NULL;
 
-  local_buffer = (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT);
-  // framebuffer = (uint8_t *)heap_caps_malloc(EPD_WIDTH * EPD_HEIGHT / 2, MALLOC_CAP_SPIRAM);
-  if (!local_buffer)
+  local_framebuffer = (uint8_t *)heap_caps_malloc(EPD_WIDTH * EPD_HEIGHT / 2, MALLOC_CAP_SPIRAM);
+  if (!local_framebuffer)
   {
     Serial.println("alloc memory failed !!!");
     while (1)
       ;
   }
-  memset(local_buffer, 0xFF, EPD_WIDTH * EPD_HEIGHT);
+  memset(local_framebuffer, 0xFF, EPD_WIDTH * EPD_HEIGHT/2);
 
-  return local_buffer;
+  return local_framebuffer;
 }
 
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial.availableForWrite());
+  // while (!Serial.availableForWrite());
   Serial.println("Dashboard starting...");
   epd_init();
-  framebuffer = get_new_frame_buffer();
+  framebuffer = init_framebuffer();
 
   btn1.setPressedHandler(buttonPressed);
 
@@ -94,5 +101,6 @@ void setup()
 void loop()
 {
   btn1.loop();
+  Serial.println("Awaiting button press...");
   delay(100);
 }
