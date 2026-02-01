@@ -4,6 +4,7 @@
 #include <esp_heap_caps.h>
 #include <lodepng.h>
 #include "trmnl.hpp"
+#include "battery.hpp"
 
 #define API_URL "http://192.168.1.220:4567/api/display"
 #define ACCESS_TOKEN "LcFaWmFWLCBLjla0jrq4"
@@ -61,6 +62,7 @@ DisplayConfig get_display_config() {
 
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
     esp_http_client_set_header(client, "Access-Token", ACCESS_TOKEN);
+    esp_http_client_set_header(client, "Battery-Voltage", String(getBatteryVoltage()).c_str());
     esp_http_client_set_header(client, "Content-Type", "application/json");
 
     if (esp_http_client_perform(client) == ESP_OK) {
@@ -124,7 +126,7 @@ bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_s
     unsigned width = 0, height = 0;
 
     Serial.printf("Decoding PNG...");
-    unsigned error = lodepng_decode_memory(&decoded_image, &width, &height, http_buf.data, http_buf.size, LCT_GREY, 8);
+        unsigned error = lodepng_decode_memory(&decoded_image, &width, &height, http_buf.data, http_buf.size, LCT_GREY, 8);
 
     if (error)
     {
@@ -145,12 +147,12 @@ bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_s
 
     if (out_buf_size >= needed_bytes)
     {
-        memset(out_buf, 0, out_buf_size);
+memset(out_buf, 0, out_buf_size);
         for (uint32_t y = 0; y < height; y++)
         {
             for (uint32_t x = 0; x < width; x++)
-            {
-                uint8_t p8 = decoded_image[y * width + x];
+        {
+            uint8_t p8 = decoded_image[y * width + x];
                 uint8_t p4 = p8 >> 4; // Scale to 4-bit
 
                 uint32_t val_idx = y * stride_width + x;
