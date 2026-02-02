@@ -66,6 +66,6 @@ void sleep_for_seconds(int seconds)
   Serial.printf("Sleeping for %d seconds...\n", seconds);
   Serial.flush();
   esp_sleep_enable_timer_wakeup(seconds * uS_TO_S_FACTOR);
-  epd_poweroff_all();
+  esp_sleep_enable_ext1_wakeup(GPIO_SEL_21, ESP_EXT1_WAKEUP_ANY_LOW);
   esp_deep_sleep_start();
 }
