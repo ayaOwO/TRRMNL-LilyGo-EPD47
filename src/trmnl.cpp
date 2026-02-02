@@ -4,6 +4,7 @@
 #include <esp_heap_caps.h>
 #include <lodepng.h>
 #include "trmnl.hpp"
+#include "wifi.hpp"
 #include "battery.hpp"
 
 #define API_URL "http://192.168.1.220:4567/api/display"
@@ -63,6 +64,7 @@ DisplayConfig get_display_config() {
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
     esp_http_client_set_header(client, "Access-Token", ACCESS_TOKEN);
     esp_http_client_set_header(client, "Battery-Voltage", String(getBatteryVoltage()).c_str());
+    esp_http_client_set_header(client, "RSSI", String(dashboard::GetRssi()).c_str());
     esp_http_client_set_header(client, "Content-Type", "application/json");
 
     if (esp_http_client_perform(client) == ESP_OK) {

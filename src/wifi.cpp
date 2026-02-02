@@ -21,3 +21,9 @@ void dashboard::connectWifi(void) {
   
   Serial.printf("CONNECTED, IP address: %s\n", WiFi.localIP().toString().c_str());
 }
+
+long dashboard::GetRssi(void) {
+  long rssi = WiFi.RSSI();
+  Serial.printf("Current RSSI: %ld dBm\n", rssi);
+  return rssi;
+}
