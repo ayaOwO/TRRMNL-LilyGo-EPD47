@@ -47,16 +47,18 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-DisplayConfig get_display_config() {
+DisplayConfig get_display_config()
+{
     DisplayConfig config = {"", 900, false};
-    
+
     // Using a smaller buffer for JSON than the image buffer
     http_buf_t json_buf;
-    json_buf.capacity = 2048; 
+    json_buf.capacity = 2048;
     json_buf.size = 0;
-    json_buf.data = (uint8_t*)malloc(json_buf.capacity);
+    json_buf.data = (uint8_t *)malloc(json_buf.capacity);
 
-    if (!json_buf.data) return config;
+    if (!json_buf.data)
+        return config;
 
     esp_http_client_config_t cfg = {
         .url = API_URL,
@@ -75,16 +77,20 @@ DisplayConfig get_display_config() {
     esp_http_client_set_header(client, "Width", String(EPD_WIDTH).c_str());
     esp_http_client_set_header(client, "Content-Type", "application/json");
 
-    if (esp_http_client_perform(client) == ESP_OK) {
+    if (esp_http_client_perform(client) == ESP_OK)
+    {
         JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, (char*)json_buf.data);
+        DeserializationError error = deserializeJson(doc, (char *)json_buf.data);
 
-        if (!error) {
+        if (!error)
+        {
             config.image_url = doc["image_url"].as<String>();
             config.refresh_rate = doc["refresh_rate"].as<int>();
             config.success = true;
             Serial.printf("API Success! URL: %s, Refresh: %d\n", config.image_url.c_str(), config.refresh_rate);
-        } else {
+        }
+        else
+        {
             Serial.printf("JSON Parse Failed: %s\n", error.c_str());
         }
     }
@@ -94,7 +100,7 @@ DisplayConfig get_display_config() {
     return config;
 }
 
-bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_size)
+bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_size)
 {
     Serial.printf("Starting fetch from: %s", url);
 
@@ -136,7 +142,7 @@ bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_s
     unsigned width = 0, height = 0;
 
     Serial.printf("Decoding PNG...");
-        unsigned error = lodepng_decode_memory(&decoded_image, &width, &height, http_buf.data, http_buf.size, LCT_GREY, 8);
+    unsigned error = lodepng_decode_memory(&decoded_image, &width, &height, http_buf.data, http_buf.size, LCT_GREY, 8);
 
     if (error)
     {
@@ -157,13 +163,13 @@ bool fetch_and_convert_image(const char* url, uint8_t* out_buf, size_t out_buf_s
 
     if (out_buf_size >= needed_bytes)
     {
-memset(out_buf, 0, out_buf_size);
+        memset(out_buf, 0, out_buf_size);
         for (uint32_t y = 0; y < height; y++)
         {
             for (uint32_t x = 0; x < width; x++)
-        {
-            uint8_t p8 = decoded_image[y * width + x];
-                uint8_t p4 = p8 >> 4; // Scale to 4-bit
+            {
+                uint8_t p8 = decoded_image[y * width + x];
+                uint8_t p4 = (p8 * 15) / 255; // Scale to 4-bit
 
                 uint32_t val_idx = y * stride_width + x;
                 uint32_t byte_idx = val_idx / 2;
