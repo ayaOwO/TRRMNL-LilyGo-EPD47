@@ -6,10 +6,12 @@
 #include "trmnl.hpp"
 #include "wifi.hpp"
 #include "battery.hpp"
+#include <epd_driver.h>
 
 #define API_URL "http://192.168.1.220:4567/api/display"
 #define ACCESS_TOKEN "LcFaWmFWLCBLjla0jrq4"
-#define MAX_HTTP_BUFFER (960 * 540)
+#define MAX_HTTP_BUFFER (EPD_HEIGHT * EPD_WIDTH)
+#define COLORS "#000000,#0A0A0A,#151515,#222222,#303030,#404040,#515151,#646464,#7A7A7A,#929292,#ACACAC,#C3C3C3,#D6D6D6,#E5E5E5,#F2F2F2,#FFFFFF"
 
 typedef struct
 {
@@ -65,6 +67,10 @@ DisplayConfig get_display_config() {
     esp_http_client_set_header(client, "Access-Token", ACCESS_TOKEN);
     esp_http_client_set_header(client, "Battery-Voltage", String(getBatteryVoltage()).c_str());
     esp_http_client_set_header(client, "RSSI", String(dashboard::GetRssi()).c_str());
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "Colors", COLORS);
+    esp_http_client_set_header(client, "Height", String(EPD_HEIGHT).c_str());
+    esp_http_client_set_header(client, "Width", String(EPD_WIDTH).c_str());
     esp_http_client_set_header(client, "Content-Type", "application/json");
 
     if (esp_http_client_perform(client) == ESP_OK) {
