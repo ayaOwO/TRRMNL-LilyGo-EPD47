@@ -2,6 +2,7 @@
 #include <ArduinoJson.h> // Required: install via PlatformIO lib_deps
 #include <esp_http_client.h>
 #include <esp_heap_caps.h>
+#include <WiFi.h>
 #include <lodepng.h>
 #include "trmnl.hpp"
 #include "wifi.hpp"
@@ -64,6 +65,7 @@ DisplayConfig get_display_config() {
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
+    esp_http_client_set_header(client, "MAC", WiFi.macAddress().c_str());
     esp_http_client_set_header(client, "Access-Token", ACCESS_TOKEN);
     esp_http_client_set_header(client, "Battery-Voltage", String(getBatteryVoltage()).c_str());
     esp_http_client_set_header(client, "RSSI", String(dashboard::GetRssi()).c_str());
