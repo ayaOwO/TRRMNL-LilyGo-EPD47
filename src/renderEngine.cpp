@@ -2,24 +2,38 @@
 #include <Arduino.h>
 #include <epd_driver.h>
 #include "trmnl.hpp"
+#include "pic3.h" // - Contains the image1 C-array
 
 int render_frame(uint8_t *local_framebuffer)
 {
-  uint8_t * temp = init_framebuffer();
-  DisplayConfig config = get_display_config();
+  DisplayConfig config = get_display_config(); //
+  
   if (!config.success) {
     Serial.println("Failed to get display config");
     return 60;
   }
-  bool success = fetch_and_convert_image(config.image_url.c_str(), temp, EPD_WIDTH * EPD_HEIGHT / 2);
-  Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
-  epd_copy_to_framebuffer(epd_full_screen(), temp, local_framebuffer);
 
-  epd_poweron();
-  epd_clear();
-  epd_draw_grayscale_image(epd_full_screen(), local_framebuffer);
-  epd_poweroff();
-  heap_caps_free(temp);
+  bool success = false;
+
+  // Check if the URL indicates the sleep screen placeholder
+  if (config.image_url.endsWith("sleep.bmp")) { //
+    epd_copy_to_framebuffer(epd_full_screen(), (uint8_t *)pic3_data, local_framebuffer);
+    Serial.println("Sleep URL detected. Loading placeholder image1");
+    success = true;
+  } 
+  else {
+    // Standard path: Fetch and convert from the network
+    success = fetch_and_convert_image(config.image_url.c_str(), local_framebuffer, EPD_WIDTH * EPD_HEIGHT / 2);
+    Serial.printf("Image fetch and convert %s\n", success ? "succeeded" : "failed");
+  }
+  
+  if (success) {
+      epd_poweron();
+      epd_clear();
+      epd_draw_grayscale_image(epd_full_screen(), local_framebuffer);
+      epd_poweroff();
+  }
+
   return config.refresh_rate;
 }
 
