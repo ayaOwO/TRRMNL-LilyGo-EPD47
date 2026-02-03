@@ -16,10 +16,12 @@ int render_frame(uint8_t *local_framebuffer)
   bool success = false;
 
   // Check if the URL indicates the sleep screen placeholder
-  if (config.image_url.endsWith("sleep.bmp")) { //
+  if (config.image_url == "null" || config.image_url.endsWith("sleep.bmp")) {
     epd_copy_to_framebuffer(epd_full_screen(), (uint8_t *)pic3_data, local_framebuffer);
     Serial.println("Sleep URL detected. Loading placeholder image1");
     success = true;
+    if (config.refresh_rate < 60)
+      config.refresh_rate = 60;
   } 
   else {
     // Standard path: Fetch and convert from the network
