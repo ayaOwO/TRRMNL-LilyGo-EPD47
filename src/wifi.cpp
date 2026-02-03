@@ -19,7 +19,7 @@ void dashboard::connectWifi(void) {
       Serial.print(".");
   }
   
-  Serial.printf("CONNECTED, IP address: %s\n", WiFi.localIP().toString().c_str());
+  Serial.printf("CONNECTED, IP address: %s, MAC address: %s\n", WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
 }
 
 long dashboard::GetRssi(void) {
