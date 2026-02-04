@@ -9,14 +9,14 @@
   * Width - auto filled
   * Height - auto filled
 * Uses a gamma of 0.7 to brighten up images
-* Recieves a 8bit grayscale and downsamples to 4bit [BYOS Laravel](https://github.com/usetrmnl/byos_laravel) has no 4bit support
+* Recieves a **8bit** grayscale and downsamples to **4bit** [BYOS Laravel](https://github.com/usetrmnl/byos_laravel) has no 4bit support
 * Manual refresh using the button
 * Deep Sleep after every refresh
 # Usage
 * Use "auto-join" on Laravel
 * In `config.hpp` set the following
-  * `ACCESS_TOKEN`
-  * `API_URL`
+  * ACCESS_TOKEN
+  * API_URL
   * SSID
   * PASSWORD
 # Notes
