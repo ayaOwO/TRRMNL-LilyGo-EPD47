@@ -7,4 +7,5 @@
 
 namespace dashboard {
     void connectWifi(void);
+    long GetRssi(void);
 }

@@ -19,5 +19,11 @@ void dashboard::connectWifi(void) {
       Serial.print(".");
   }
   
-  Serial.print("CONNECTED");
+  Serial.printf("CONNECTED, IP address: %s, MAC address: %s\n", WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
+}
+
+long dashboard::GetRssi(void) {
+  long rssi = WiFi.RSSI();
+  Serial.printf("Current RSSI: %ld dBm\n", rssi);
+  return rssi;
 }
