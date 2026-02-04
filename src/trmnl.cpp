@@ -14,6 +14,41 @@
 #define MAX_HTTP_BUFFER (EPD_HEIGHT * EPD_WIDTH)
 #define COLORS "#000000,#0A0A0A,#151515,#222222,#303030,#404040,#515151,#646464,#7A7A7A,#929292,#ACACAC,#C3C3C3,#D6D6D6,#E5E5E5,#F2F2F2,#FFFFFF"
 
+/*
+def generate_epd_lut(gamma=0.7, bits=4):
+    max_input = 255
+    max_output = (2**bits) - 1
+
+    lut = []
+    for i in range(256):
+        # Calculate gamma: (input/max)^gamma * max_output
+        val = math.pow(i / max_input, gamma) * max_output
+        
+        # Round to nearest integer and clamp
+        rounded_val = round(val)
+        lut.append(rounded_val)
+
+    return lut
+*/
+const uint8_t k_gamma_lut[256] = {
+     0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,
+     2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,
+     4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  5,  5,
+     5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  6,  6,
+     6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,
+     7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  8,
+     8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
+     8,  8,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+     9,  9,  9,  9,  9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+    10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11,
+    11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12,
+    12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+    12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
+    13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14,
+    14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+    14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
+};
+
 typedef struct
 {
     uint8_t *data;
@@ -169,7 +204,7 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
             for (uint32_t x = 0; x < width; x++)
             {
                 uint8_t p8 = decoded_image[y * width + x];
-                uint8_t p4 = (p8 * 15) / 255; // Scale to 4-bit
+                uint8_t p4 = k_gamma_lut[p8]; // Use precomputed gamma lookup table
 
                 uint32_t val_idx = y * stride_width + x;
                 uint32_t byte_idx = val_idx / 2;
