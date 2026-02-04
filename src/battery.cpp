@@ -1,9 +1,9 @@
 #include "battery.hpp"
 #include <Arduino.h>
 #include <epd_driver.h>
+#include "config.hpp"
 
 #define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  10          /* Time ESP32 will go to sleep (in seconds) */
 
 float getBatteryVoltage() {
   Serial.println("--- Battery Check ---");
@@ -29,8 +29,7 @@ float getBatteryVoltage() {
   float voltage = (rawAverage / 4095.0) * 3.3 * 2.0;
 
   // 4. Calibration
-  float calibrationFactor = 1.1; 
-  float finalVoltage = voltage * calibrationFactor;
+  float finalVoltage = voltage * CALIBRATIONFACTOR;
 
   // --- Serial Logging ---
   Serial.printf("Raw ADC Avg: %.2f\n", rawAverage);

@@ -8,11 +8,9 @@
 #include "wifi.hpp"
 #include "battery.hpp"
 #include <epd_driver.h>
+#include "config.hpp"
 
-#define API_URL "http://192.168.1.220:4567/api/display"
-#define ACCESS_TOKEN "LcFaWmFWLCBLjla0jrq4"
 #define MAX_HTTP_BUFFER (EPD_HEIGHT * EPD_WIDTH)
-#define COLORS "#000000,#0A0A0A,#151515,#222222,#303030,#404040,#515151,#646464,#7A7A7A,#929292,#ACACAC,#C3C3C3,#D6D6D6,#E5E5E5,#F2F2F2,#FFFFFF"
 
 /*
 def generate_epd_lut(gamma=0.7, bits=4):
