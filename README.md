@@ -13,7 +13,7 @@
 * Manual refresh using the button
 * Deep Sleep after every refresh
 # Usage
-* Use "auto-join" on Laravel
+* Use "auto-join" on Laravel/manually add your device
 * In `config.hpp` set the following
   * ACCESS_TOKEN
   * API_URL
@@ -25,5 +25,11 @@ I thought I'd wait for official support for it, but since epdiy wasn't merged I 
 Porting the TRMNL firmware seems too difficult for now and the API is so simple so I decided to write my own.
 
 # Device
-I'm using this version of the [LilyGoT5 EPD](https://lilygo.cc/products/t5-4-7-inch-e-paper-v2-3)
-With their [driver](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47)
+I'm using this version of the [LilyGoT5 EPD](https://lilygo.cc/products/t5-4-7-inch-e-paper-v2-3) with their [driver](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47)
+# TRMNL
+see https://trmnl.com/
+
+https://github.com/usetrmnl
+
+# Server I'm using
+https://github.com/usetrmnl/byos_laravel
