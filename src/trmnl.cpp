@@ -23,7 +23,7 @@ def generate_epd_lut(gamma=0.7, bits=4):
     for i in range(256):
         # Calculate gamma: (input/max)^gamma * max_output
         val = math.pow(i / max_input, gamma) * max_output
-        
+
         # Round to nearest integer and clamp
         rounded_val = round(val)
         lut.append(rounded_val)
@@ -31,23 +31,22 @@ def generate_epd_lut(gamma=0.7, bits=4):
     return lut
 */
 const uint8_t k_gamma_lut[256] = {
-     0,  0,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,  2,
-     2,  2,  2,  2,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,
-     4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  5,  5,
-     5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  6,  6,  6,
-     6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  7,  7,
-     7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,  8,
-     8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,
-     8,  8,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-     9,  9,  9,  9,  9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+    0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+    9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
     10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11,
     11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 12,
     12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
     12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,
     13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14,
     14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
-    14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-};
+    14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
 
 typedef struct
 {
@@ -190,40 +189,28 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
     Serial.printf("PNG Decoded Successfully: %u x %u", width, height);
 
     // 4. Pack into 4-bit (Official EPD logic)
-    // Account for the "additional nibble per row" for odd widths
-    uint32_t stride_width = (width % 2 == 0) ? width : width + 1;
-    size_t needed_bytes = (stride_width * height + 1) / 2;
+    size_t total_pixels = (size_t)width * height;
+    size_t needed_bytes = total_pixels / 2; // No +1 needed since it's always even
 
-    Serial.printf("Packing 4-bit data. Needed: %zu bytes, Available: %zu bytes", needed_bytes, out_buf_size);
+    Serial.printf("Packing 4-bit data (No Stride, Even Only). Needed: %zu bytes", needed_bytes);
 
     if (out_buf_size >= needed_bytes)
     {
-        memset(out_buf, 0, out_buf_size);
-        for (uint32_t y = 0; y < height; y++)
+        for (size_t i = 0; i < needed_bytes; i++)
         {
-            for (uint32_t x = 0; x < width; x++)
-            {
-                uint8_t p8 = decoded_image[y * width + x];
-                uint8_t p4 = k_gamma_lut[p8]; // Use precomputed gamma lookup table
+            // Grab two 8-bit pixels at once
+            uint8_t p8_1 = decoded_image[i * 2];
+            uint8_t p8_2 = decoded_image[i * 2 + 1];
 
-                uint32_t val_idx = y * stride_width + x;
-                uint32_t byte_idx = val_idx / 2;
-
-                if (val_idx % 2)
-                {
-                    out_buf[byte_idx] = (out_buf[byte_idx] & 0x0F) | (p4 << 4);
-                }
-                else
-                {
-                    out_buf[byte_idx] = (out_buf[byte_idx] & 0xF0) | (p4 & 0x0F);
-                }
-            }
+            // Convert both via LUT and pack into one byte
+            // Low nibble = Pixel 1, High nibble = Pixel 2
+            out_buf[i] = (k_gamma_lut[p8_2] << 4) | (k_gamma_lut[p8_1] & 0x0F);
         }
         Serial.printf("Packing complete.");
     }
     else
     {
-        Serial.printf("Output buffer too small! Needs %zu", needed_bytes);
+        Serial.printf("Output buffer too small!");
     }
 
     // 5. Cleanup
