@@ -23,3 +23,7 @@
 I was interesetd in the TRMNL devices and software, but saw there was no support for the dev board I had bought.
 I thought I'd wait for official support for it, but since epdiy wasn't merged I don't think this will happen.
 Porting the TRMNL firmware seems too difficult for now and the API is so simple so I decided to write my own.
+
+# Device
+I'm using this version of the [LilyGoT5 EPD](https://lilygo.cc/products/t5-4-7-inch-e-paper-v2-3)
+With their [driver](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47)
