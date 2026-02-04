@@ -4,14 +4,11 @@
 
 /* *** My includes ********************************************* */
 #include "wifi.hpp"
-#include "cred.hpp"
 #include <Button2.h>
 #include <epd_driver.h>
 #include "battery.hpp"
 #include "renderEngine.hpp"
-// #include "Firasans/Firasans.h"
 #include <Arduino.h>
-#include "trmnl.hpp"
 
 using namespace dashboard;
 

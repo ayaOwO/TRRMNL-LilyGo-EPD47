@@ -6,14 +6,14 @@
 #include <WiFi.h>
 
 #include "wifi.hpp"
-#include "cred.hpp"
+#include "config.hpp"
 
 using namespace dashboard;
 
 void dashboard::connectWifi(void) {
-  Serial.printf("Attemping to connect with %s %s\n", WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
+  Serial.printf("Attemping to connect with %s %s\n", SSID, PASSWORD);
 
-  WiFi.begin(WIFI_CREDS.WifiName.c_str(), WIFI_CREDS.Password.c_str());
+  WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");

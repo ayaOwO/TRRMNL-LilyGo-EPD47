@@ -81,7 +81,7 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
 
 DisplayConfig get_display_config()
 {
-    DisplayConfig config = {"", 900, false};
+    DisplayConfig config = {"", DEVICE_REFRESHRATE, false};
 
     // Using a smaller buffer for JSON than the image buffer
     http_buf_t json_buf;

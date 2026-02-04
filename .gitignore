@@ -10,5 +10,3 @@
 .pio
 .cache
 compile_commands.json
-
-cred.cpp
