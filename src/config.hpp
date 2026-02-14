@@ -5,3 +5,5 @@
 #define DEVICE_REFRESHRATE 900
 #define SSID "MyNetwork"
 #define PASSWORD "MyPassword"
+// You can override these values by #undef and #define them in secrets.hpp
+#include "secrets.hpp"

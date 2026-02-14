@@ -10,3 +10,5 @@
 .pio
 .cache
 compile_commands.json
+
+src/secrets.hpp
