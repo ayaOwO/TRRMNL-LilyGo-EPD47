@@ -33,7 +33,7 @@ int render_frame(uint8_t *local_framebuffer)
       epd_poweron();
       epd_clear();
       epd_draw_grayscale_image(epd_full_screen(), local_framebuffer);
-      epd_poweroff();
+      epd_poweroff_all();
   }
 
   return config.refresh_rate;

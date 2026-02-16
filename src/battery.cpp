@@ -19,7 +19,6 @@ float getBatteryVoltage() {
     uint16_t reading = analogRead(BATT_PIN);
     rawSum += reading;
     Serial.printf("Sample %d: %u\n", i, reading); // Uncomment for deep debugging
-    delay(2); 
   }
   
   float rawAverage = (float)rawSum / samples;

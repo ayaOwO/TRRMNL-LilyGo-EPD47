@@ -38,8 +38,9 @@ void buttonPressed(Button2 &b)
 
 void setup()
 {
-  Serial.begin(115200);
+  // Serial.begin(115200);
   // while (!Serial.availableForWrite());
+  setCpuFrequencyMhz(80);
   Serial.println("Dashboard starting...");
   epd_init();
   framebuffer = init_framebuffer();
