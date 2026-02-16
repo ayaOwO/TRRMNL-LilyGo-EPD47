@@ -48,5 +48,6 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "idf.currentSetup": "/home/ayak/esp/v5.5.2/esp-idf"
 }

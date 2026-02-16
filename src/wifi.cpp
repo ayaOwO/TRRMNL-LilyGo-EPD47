@@ -12,6 +12,8 @@ using namespace dashboard;
 
 void dashboard::connectWifi(void) {
   Serial.printf("Attemping to connect with %s %s\n", SSID, PASSWORD);
+  WiFi.config(LOCAL_IP, GATEWAY, SUBNET, DNS);
+
 
   WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {

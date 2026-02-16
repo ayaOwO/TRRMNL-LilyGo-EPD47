@@ -66,12 +66,12 @@ static esp_err_t http_event_handler(esp_http_client_event_t *evt)
         }
         else
         {
-            Serial.printf("HTTP Buffer Overflow! Increase MAX_HTTP_BUFFER. Current size: %zu, New data: %d", buf->size, evt->data_len);
+            Serial.printf("HTTP Buffer Overflow! Increase MAX_HTTP_BUFFER. Current size: %zu, New data: %d\n", buf->size, evt->data_len);
             return ESP_FAIL;
         }
         break;
     case HTTP_EVENT_ERROR:
-        Serial.printf("HTTP_EVENT_ERROR");
+        Serial.printf("HTTP_EVENT_ERROR\n");
         break;
     default:
         break;
@@ -107,6 +107,7 @@ DisplayConfig get_display_config()
     esp_http_client_set_header(client, "Colors", COLORS);
     esp_http_client_set_header(client, "Height", String(EPD_HEIGHT).c_str());
     esp_http_client_set_header(client, "Width", String(EPD_WIDTH).c_str());
+    esp_http_client_set_header(client, "Host", HOST_HEADER);
     esp_http_client_set_header(client, "Content-Type", "application/json");
 
     if (esp_http_client_perform(client) == ESP_OK)
@@ -134,7 +135,7 @@ DisplayConfig get_display_config()
 
 bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_size)
 {
-    Serial.printf("Starting fetch from: %s", url);
+    Serial.printf("Starting fetch from: %s\n", url);
 
     // 1. Allocate Buffer
     http_buf_t http_buf;
@@ -144,7 +145,7 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
 
     if (!http_buf.data)
     {
-        Serial.printf("Failed to allocate %d bytes in PSRAM for HTTP buffer", MAX_HTTP_BUFFER);
+        Serial.printf("Failed to allocate %d bytes in PSRAM for HTTP buffer\n", MAX_HTTP_BUFFER);
         return false;
     }
 
@@ -159,7 +160,7 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
 
     if (err != ESP_OK)
     {
-        Serial.printf("HTTP GET failed: %s", esp_err_to_name(err));
+        Serial.printf("HTTP GET failed: %s\n", esp_err_to_name(err));
         esp_http_client_cleanup(client);
         free(http_buf.data);
         return false;
@@ -167,30 +168,34 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
 
     int status_code = esp_http_client_get_status_code(client);
     size_t content_length = http_buf.size;
-    Serial.printf("HTTP Status = %d, content_length = %zu", status_code, content_length);
+    Serial.printf("HTTP Status = %d, content_length = %zu\n", status_code, content_length);
 
     // 3. PNG Decode
     uint8_t *decoded_image = NULL;
     unsigned width = 0, height = 0;
 
-    Serial.printf("Decoding PNG...");
+    Serial.printf("Decoding PNG...\n");
     unsigned error = lodepng_decode_memory(&decoded_image, &width, &height, http_buf.data, http_buf.size, LCT_GREY, 8);
 
     if (error)
     {
-        Serial.printf("LodePNG decode error %u: %s", error, lodepng_error_text(error));
+        Serial.printf("LodePNG decode error %u: %s\n", error, lodepng_error_text(error));
         esp_http_client_cleanup(client);
         free(http_buf.data);
         return false;
     }
 
-    Serial.printf("PNG Decoded Successfully: %u x %u", width, height);
+    free(http_buf.data);
+    esp_http_client_cleanup(client);
+    WiFi.mode(WIFI_OFF); // Turn off WiFi immediately after fetch to save power
+
+    Serial.printf("PNG Decoded Successfully: %u x %u\n", width, height);
 
     // 4. Pack into 4-bit (Official EPD logic)
     size_t total_pixels = (size_t)width * height;
     size_t needed_bytes = total_pixels / 2; // No +1 needed since it's always even
 
-    Serial.printf("Packing 4-bit data (No Stride, Even Only). Needed: %zu bytes", needed_bytes);
+    Serial.printf("Packing 4-bit data, Need: %zu bytes\n", needed_bytes);
 
     if (out_buf_size >= needed_bytes)
     {
@@ -204,17 +209,15 @@ bool fetch_and_convert_image(const char *url, uint8_t *out_buf, size_t out_buf_s
             // Low nibble = Pixel 1, High nibble = Pixel 2
             out_buf[i] = (k_gamma_lut[p8_2] << 4) | (k_gamma_lut[p8_1] & 0x0F);
         }
-        Serial.printf("Packing complete.");
+        Serial.printf("Packing complete.\n");
     }
     else
     {
-        Serial.printf("Output buffer too small!");
+        Serial.printf("Output buffer too small!\n");
     }
 
     // 5. Cleanup
     free(decoded_image);
-    esp_http_client_cleanup(client);
-    free(http_buf.data);
 
     return (out_buf_size >= needed_bytes);
 }
