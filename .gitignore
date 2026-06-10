@@ -10,5 +10,6 @@
 .pio
 .cache
 compile_commands.json
+sdkconfig.*
 
 src/secrets.hpp

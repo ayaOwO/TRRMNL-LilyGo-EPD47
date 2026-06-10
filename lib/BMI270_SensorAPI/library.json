@@ -1,0 +1,10 @@
+{
+  "name": "BMI270_SensorAPI",
+  "version": "1.0.0",
+  "build": {
+    "srcFilter": [
+      "+<bmi2.c>",
+      "+<bmi270.c>"
+    ]
+  }
+}

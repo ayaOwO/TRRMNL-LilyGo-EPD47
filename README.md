@@ -1,35 +1,47 @@
-# TRMNL LilyGo EPD47
-# Features
-* Queries /api/display endpoint
-  * MAC - auto filled
-  * Access-Token - set with `config.hpp`
-  * Battery-Voltage - calculated
-  * RSSI - calculated
-  * Colors - uses a uniform pallet of 16 grays, see `config.hpp`
-  * Width - auto filled
-  * Height - auto filled
-* Uses a gamma of 0.7 to brighten up images
-* Recieves a **8bit** grayscale and downsamples to **4bit** [BYOS Laravel](https://github.com/usetrmnl/byos_laravel) has no 4bit support
-* Manual refresh using the button
-* Deep Sleep after every refresh
-# Usage
-* Use "auto-join" on Laravel/manually add your device
-* In `config.hpp` set the following
-  * ACCESS_TOKEN
-  * API_URL
-  * SSID
-  * PASSWORD
-# Notes
-I was interesetd in the TRMNL devices and software, but saw there was no support for the dev board I had bought.
-I thought I'd wait for official support for it, but since epdiy wasn't merged I don't think this will happen.
-Porting the TRMNL firmware seems too difficult for now and the API is so simple so I decided to write my own.
+# LilyGo EPD47 Bike Computer
 
-# Device
-I'm using this version of the [LilyGoT5 EPD](https://lilygo.cc/products/t5-4-7-inch-e-paper-v2-3) with their [driver](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47)
-# TRMNL
-see https://trmnl.com/
+A standalone bike-computer dashboard for the LilyGo T5 4.7-inch e-paper S3.
+It renders locally with the
+[LilyGo EPD47 `esp32s3` driver](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47/tree/esp32s3)
+and refreshes every 10 seconds. Wi-Fi is used briefly at startup to synchronize
+the RTC from NTP; no TRMNL API or deep-sleep refresh is used.
 
-https://github.com/usetrmnl
+## Dashboard
 
-# Server I'm using
-https://github.com/usetrmnl/byos_laravel
+- Large speed and trip-distance fields reserved for a future UART GPS
+- PCF8563 RTC time
+- MS5611 temperature, pressure, and estimated altitude
+- BMI270 incline
+- Battery voltage
+
+The future GPS integration point is in `readBikeComputerData()` in `src/main.cpp`.
+Populate `speedKph`, `distanceKm`, and `gpsValid` from the UART GPS parser.
+
+## Hardware
+
+| Device | I2C address |
+| --- | --- |
+| PCF8563 RTC | `0x51` |
+| GT911 touch | `0x5D` |
+| BMI270 IMU | `0x69` |
+| MS5611 barometer | `0x77` |
+
+I2C uses SDA GPIO18 and SCL GPIO17. More details are in
+[docs/hardware-i2c.md](docs/hardware-i2c.md).
+
+## Build And Flash
+
+```sh
+pio run
+pio run --target upload
+pio device monitor --environment T5-ePaper-S3
+```
+
+The configured upload and monitor port is `/dev/ttyACM1`.
+
+Create `src/secrets.hpp` from `src/secrets.example.hpp` and enter the Wi-Fi
+credentials. `src/secrets.hpp` is ignored by git. NTP server, timeout, and
+timezone are configured in `src/config.hpp`.
+
+To manually set the RTC, edit the `RTC_SYNC_*` fields in `src/config.hpp`, set
+`RTC_MANUAL_SYNC_ENABLED` to `1`, flash once, then set it back to `0`.
