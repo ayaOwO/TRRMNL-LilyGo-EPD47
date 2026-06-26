@@ -18,7 +18,14 @@ struct BikeComputerData
     float batteryV = 0.0F;
     float speedKph = 0.0F;
     float distanceKm = 0.0F;
+    float latitude = 0.0F;
+    float longitude = 0.0F;
+    float gpsAltitudeM = 0.0F;
+    float courseDeg = 0.0F;
+    int satellitesUsed = 0;
+    int satellitesInView = 0;
     bool gpsValid = false;
+    bool gpsTimeValid = false;
 };
 
 void renderBikeComputer(uint8_t *framebuffer, const BikeComputerData &data);

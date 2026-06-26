@@ -7,12 +7,14 @@
 #include "battery.hpp"
 #include "bike_computer.hpp"
 #include "config.hpp"
+#include "gps.hpp"
 #include "sensors.hpp"
-#include "wifi_time.hpp"
 
 namespace
 {
 constexpr float SEA_LEVEL_PRESSURE_HPA = 1013.25F;
+constexpr uint32_t MILLISECONDS_PER_SECOND = 1000UL;
+constexpr uint32_t GPS_POLL_DELAY_MS = 5;
 
 uint8_t *framebuffer = nullptr;
 sensors::Ms5611 barometer{};
@@ -21,11 +23,33 @@ float accelScale = 0.0F;
 float gyroScale = 0.0F;
 bool barometerReady = false;
 bool imuReady = false;
+bool rtcSyncedFromGps = false;
 
 BikeComputerData readBikeComputerData()
 {
+    gps::update();
+    const gps::Data gpsData = gps::read();
+
     BikeComputerData data{};
-    data.timeValid = sensors::readPcf8563(data.time) && data.time.valid;
+    if (gpsData.hasTime)
+    {
+        data.time = gpsData.utcTime;
+        data.timeValid = true;
+        data.gpsTimeValid = true;
+
+        if (!rtcSyncedFromGps)
+        {
+            rtcSyncedFromGps = sensors::setPcf8563(gpsData.utcTime);
+            Serial.printf("GPS UTC time: %04u-%02u-%02u %02u:%02u:%02u | RTC update: %s\n",
+                          gpsData.utcTime.year, gpsData.utcTime.month, gpsData.utcTime.day,
+                          gpsData.utcTime.hour, gpsData.utcTime.minute, gpsData.utcTime.second,
+                          rtcSyncedFromGps ? "complete" : "failed");
+        }
+    }
+    else
+    {
+        data.timeValid = sensors::readPcf8563(data.time) && data.time.valid;
+    }
 
     if (barometerReady &&
         sensors::readMs5611(barometer, data.temperatureC, data.pressureHpa) &&
@@ -52,19 +76,27 @@ BikeComputerData readBikeComputerData()
         }
     }
 
-    // Future UART GPS integration should update these four fields.
     data.batteryV = getBatteryVoltage();
-    data.speedKph = 0.0F;
-    data.distanceKm = 0.0F;
-    data.gpsValid = false;
+    data.gpsValid = gpsData.hasCoords;
+    data.speedKph = gpsData.speedKph;
+    data.latitude = gpsData.latitude;
+    data.longitude = gpsData.longitude;
+    data.gpsAltitudeM = gpsData.altitudeM;
+    data.courseDeg = gpsData.courseDeg;
+    data.satellitesUsed = gpsData.satellitesUsed;
+    data.satellitesInView = gpsData.satellitesInView;
     return data;
 }
 
 void printData(const BikeComputerData &data)
 {
-    Serial.printf("RTC: %02u:%02u:%02u | GPS: %s | ",
+    Serial.printf("Time: %02u:%02u:%02u %s | GPS: %s sats %d/%d | ",
                   data.time.hour, data.time.minute, data.time.second,
-                  data.gpsValid ? "ready" : "waiting");
+                  data.gpsTimeValid ? "GPS UTC" : "RTC",
+                  data.gpsValid ? "fix" : "waiting",
+                  data.satellitesUsed, data.satellitesInView);
+    Serial.printf("Lat: %.6f | Lon: %.6f | Speed: %.1f km/h | Course: %.0f deg | ",
+                  data.latitude, data.longitude, data.speedKph, data.courseDeg);
     Serial.printf("Altitude: %.1f m | Pressure: %.1f hPa | Temperature: %.1f C | ",
                   data.altitudeM, data.pressureHpa, data.temperatureC);
     Serial.printf("Incline: %.1f deg | Motion: %.2f g | Battery: %.2f V\n",
@@ -75,15 +107,17 @@ void printData(const BikeComputerData &data)
 void setup()
 {
     Serial.begin(115200);
-    delay(2000);
     Serial.println("Bike computer starting...");
+
+    gps::begin();
 
     if (!sensors::initI2c())
     {
         Serial.println("I2C initialization failed");
         while (true)
         {
-            delay(1000);
+            gps::update();
+            delay(1 * MILLISECONDS_PER_SECOND);
         }
     }
 
@@ -94,8 +128,6 @@ void setup()
     Serial.printf("Manual RTC sync: %s\n",
                   sensors::setPcf8563(manualRtcTime) ? "complete" : "failed");
 #endif
-
-    syncRtcFromNtp();
 
     barometerReady = sensors::initMs5611(barometer);
     imuReady = sensors::initBmi270(imu, accelScale, gyroScale);
@@ -111,9 +143,14 @@ void setup()
         Serial.println("Display framebuffer allocation failed");
         while (true)
         {
-            delay(1000);
+            gps::update();
+            delay(1 * MILLISECONDS_PER_SECOND);
         }
     }
+
+    epd_poweron();
+    epd_clear();
+    epd_poweroff_all();
 }
 
 void loop()
@@ -121,5 +158,11 @@ void loop()
     const BikeComputerData data = readBikeComputerData();
     printData(data);
     renderBikeComputer(framebuffer, data);
-    delay(BIKE_COMPUTER_REFRESH_SECONDS * 1000UL);
+
+    const uint32_t refreshStartedAt = millis();
+    while (millis() - refreshStartedAt < BIKE_COMPUTER_REFRESH_SECONDS * MILLISECONDS_PER_SECOND)
+    {
+        gps::update();
+        delay(GPS_POLL_DELAY_MS);
+    }
 }
