@@ -25,6 +25,60 @@ bool barometerReady = false;
 bool imuReady = false;
 bool rtcSyncedFromGps = false;
 
+void logMs5611Calibration()
+{
+    for (uint8_t index = 0; index < 7; ++index)
+    {
+        Serial.printf("MS5611 calibration[%u]=0x%04X (%u)\n",
+                      index, barometer.calibration[index], barometer.calibration[index]);
+    }
+}
+
+void tryInitBarometer()
+{
+    Serial.println("Initializing MS5611 barometer...");
+    barometerReady = sensors::initMs5611(barometer);
+    Serial.printf("MS5611 init result: %s\n", barometerReady ? "ready" : "failed");
+    logMs5611Calibration();
+}
+
+void tryInitImu()
+{
+    Serial.println("Initializing BMI270 IMU...");
+    imuReady = sensors::initBmi270(imu, accelScale, gyroScale);
+    Serial.printf("BMI270 init result: %s\n", imuReady ? "ready" : "failed");
+}
+
+void logI2cScan()
+{
+    const std::vector<uint8_t> devices = sensors::scanI2cBus();
+    Serial.printf("I2C scan: found %u device(s)", static_cast<unsigned>(devices.size()));
+    for (const uint8_t address : devices)
+    {
+        Serial.printf(" 0x%02X", address);
+    }
+    Serial.println();
+}
+
+void logBarometerIdentity()
+{
+    sensors::BarometerIdentity identity{};
+    if (!sensors::readBarometerIdentity(identity))
+    {
+        Serial.println("Barometer identity: no readable ID/PROM at expected address 0x77");
+        return;
+    }
+
+    Serial.printf("Barometer identity at 0x77: Bosch/DPS reg 0xD0=0x%02X, DPS reg 0x0D=0x%02X\n",
+                  identity.boschChipId, identity.dps310ProductId);
+    Serial.print("Barometer MS5611 PROM:");
+    for (uint8_t index = 0; index < 7; ++index)
+    {
+        Serial.printf(" [%u]=0x%04X", index, identity.ms5611Prom[index]);
+    }
+    Serial.println();
+}
+
 BikeComputerData readBikeComputerData()
 {
     gps::update();
@@ -51,15 +105,43 @@ BikeComputerData readBikeComputerData()
         data.timeValid = sensors::readPcf8563(data.time) && data.time.valid;
     }
 
-    if (barometerReady &&
-        sensors::readMs5611(barometer, data.temperatureC, data.pressureHpa) &&
-        data.temperatureC > -100.0F && data.temperatureC < 100.0F &&
-        data.pressureHpa > 100.0F && data.pressureHpa < 1200.0F)
+    if (barometerReady)
     {
-        data.altitudeM =
-            44307.694F *
-            (1.0F - std::pow(data.pressureHpa / SEA_LEVEL_PRESSURE_HPA, 0.190284F));
-        data.barometerValid = true;
+        const bool barometerRead =
+            sensors::readMs5611(barometer, data.temperatureC, data.pressureHpa);
+        const bool barometerInRange =
+            data.temperatureC > -100.0F && data.temperatureC < 100.0F &&
+            data.pressureHpa > 100.0F && data.pressureHpa < 1200.0F;
+
+        if (barometerRead && barometerInRange)
+        {
+            data.altitudeM =
+                44307.694F *
+                (1.0F - std::pow(data.pressureHpa / SEA_LEVEL_PRESSURE_HPA, 0.190284F));
+            data.barometerValid = true;
+        }
+        else if (barometerRead)
+        {
+            Serial.printf("MS5611 read out of expected range: temp=%.2f C pressure=%.2f hPa\n",
+                          data.temperatureC, data.pressureHpa);
+        }
+        else
+        {
+            Serial.println("MS5611 read returned false");
+        }
+    }
+    else
+    {
+        Serial.println("MS5611 skipped: init did not complete; retrying init");
+        logI2cScan();
+        logBarometerIdentity();
+        tryInitBarometer();
+    }
+
+    if (!imuReady)
+    {
+        Serial.println("BMI270 skipped: init did not complete; retrying init");
+        tryInitImu();
     }
 
     if (imuReady)
@@ -67,6 +149,9 @@ BikeComputerData readBikeComputerData()
         bmi2_sens_data sample{};
         if (bmi2_get_sensor_data(&sample, &imu) == BMI2_OK)
         {
+            data.accelRawX = sample.acc.x;
+            data.accelRawY = sample.acc.y;
+            data.accelRawZ = sample.acc.z;
             const float x = sample.acc.x * accelScale;
             const float y = sample.acc.y * accelScale;
             const float z = sample.acc.z * accelScale;
@@ -77,6 +162,7 @@ BikeComputerData readBikeComputerData()
     }
 
     data.batteryV = getBatteryVoltage();
+    data.gpsHasData = gpsData.hasData;
     data.gpsValid = gpsData.hasCoords;
     data.speedKph = gpsData.speedKph;
     data.latitude = gpsData.latitude;
@@ -99,7 +185,8 @@ void printData(const BikeComputerData &data)
                   data.latitude, data.longitude, data.speedKph, data.courseDeg);
     Serial.printf("Altitude: %.1f m | Pressure: %.1f hPa | Temperature: %.1f C | ",
                   data.altitudeM, data.pressureHpa, data.temperatureC);
-    Serial.printf("Incline: %.1f deg | Motion: %.2f g | Battery: %.2f V\n",
+    Serial.printf("Accel raw: x=%d y=%d z=%d | Incline: %.1f deg | Motion: %.2f g | Battery: %.2f V\n",
+                  data.accelRawX, data.accelRawY, data.accelRawZ,
                   data.inclineDegrees, data.motionG, data.batteryV);
 }
 } // namespace
@@ -120,6 +207,9 @@ void setup()
             delay(1 * MILLISECONDS_PER_SECOND);
         }
     }
+    Serial.println("I2C initialization complete");
+    logI2cScan();
+    logBarometerIdentity();
 
 #if RTC_MANUAL_SYNC_ENABLED
     const sensors::DateTime manualRtcTime{
@@ -129,8 +219,8 @@ void setup()
                   sensors::setPcf8563(manualRtcTime) ? "complete" : "failed");
 #endif
 
-    barometerReady = sensors::initMs5611(barometer);
-    imuReady = sensors::initBmi270(imu, accelScale, gyroScale);
+    tryInitBarometer();
+    tryInitImu();
     Serial.printf("MS5611: %s | BMI270: %s\n",
                   barometerReady ? "ready" : "not found",
                   imuReady ? "ready" : "not found");

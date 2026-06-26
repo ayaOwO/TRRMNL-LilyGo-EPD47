@@ -1,5 +1,5 @@
 #define BATTERY_CALIBRATIONFACTOR 1
-#define BIKE_COMPUTER_REFRESH_SECONDS 10
+#define BIKE_COMPUTER_REFRESH_SECONDS 4
 
 // Set to 1 for one flash only, then set back to 0 and flash again.
 #define RTC_MANUAL_SYNC_ENABLED 0

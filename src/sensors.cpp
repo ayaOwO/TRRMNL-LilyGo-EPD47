@@ -6,6 +6,8 @@
 #include <cstring>
 #include <vector>
 
+#include <Arduino.h>
+
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
@@ -310,11 +312,13 @@ bool readGt911Touches(std::vector<TouchPoint> &touches)
 
 bool initMs5611(Ms5611 &sensor)
 {
+    Serial.printf("MS5611 init: address 0x%02X reset command\n", MS5611_ADDRESS);
     const uint8_t resetCommand = 0x1E;
     esp_err_t result = ESP_FAIL;
     for (int attempt = 0; attempt < 3 && result != ESP_OK; ++attempt)
     {
         result = i2cWrite(MS5611_ADDRESS, &resetCommand, 1);
+        Serial.printf("MS5611 reset attempt %d: %s\n", attempt + 1, esp_err_to_name(result));
         if (result != ESP_OK)
         {
             vTaskDelay(pdMS_TO_TICKS(5));
@@ -336,6 +340,8 @@ bool initMs5611(Ms5611 &sensor)
         for (int attempt = 0; attempt < 3 && result != ESP_OK; ++attempt)
         {
             result = i2cReadCommand(MS5611_ADDRESS, registerAddress, data, sizeof(data));
+            Serial.printf("MS5611 PROM[%u] read attempt %d at 0x%02X: %s\n",
+                          index, attempt + 1, registerAddress, esp_err_to_name(result));
         }
         if (result != ESP_OK)
         {
@@ -344,6 +350,8 @@ bool initMs5611(Ms5611 &sensor)
         }
 
         sensor.calibration[index] = static_cast<uint16_t>((data[0] << 8) | data[1]);
+        Serial.printf("MS5611 PROM[%u] = 0x%04X (%u)\n",
+                      index, sensor.calibration[index], sensor.calibration[index]);
         if (index > 0 && sensor.calibration[index] == 0)
         {
             ESP_LOGE(TAG, "MS5611 PROM word %u is zero", index);
@@ -356,22 +364,30 @@ bool initMs5611(Ms5611 &sensor)
 
 bool readMs5611Adc(uint8_t conversionCommand, uint32_t &value)
 {
-    if (i2cWrite(MS5611_ADDRESS, &conversionCommand, 1) != ESP_OK)
+    const esp_err_t startResult = i2cWrite(MS5611_ADDRESS, &conversionCommand, 1);
+    if (startResult != ESP_OK)
     {
+        Serial.printf("MS5611 ADC conversion command 0x%02X failed: %s\n",
+                      conversionCommand, esp_err_to_name(startResult));
         return false;
     }
 
     vTaskDelay(pdMS_TO_TICKS(10));
 
     uint8_t data[3];
-    if (i2cReadCommand(MS5611_ADDRESS, 0x00, data, sizeof(data)) != ESP_OK)
+    const esp_err_t readResult = i2cReadCommand(MS5611_ADDRESS, 0x00, data, sizeof(data));
+    if (readResult != ESP_OK)
     {
+        Serial.printf("MS5611 ADC read for command 0x%02X failed: %s\n",
+                      conversionCommand, esp_err_to_name(readResult));
         return false;
     }
 
     value = (static_cast<uint32_t>(data[0]) << 16) |
             (static_cast<uint32_t>(data[1]) << 8) |
             data[2];
+    Serial.printf("MS5611 ADC command 0x%02X raw=%lu bytes=%02X %02X %02X\n",
+                  conversionCommand, static_cast<unsigned long>(value), data[0], data[1], data[2]);
     return true;
 }
 
@@ -382,6 +398,7 @@ bool readMs5611(const Ms5611 &sensor, float &temperatureC, float &pressureHpa)
 
     if (!readMs5611Adc(0x48, pressureRaw) || !readMs5611Adc(0x58, temperatureRaw))
     {
+        Serial.println("MS5611 read failed: pressure or temperature ADC read failed");
         return false;
     }
 
@@ -419,6 +436,11 @@ bool readMs5611(const Ms5611 &sensor, float &temperatureC, float &pressureHpa)
 
     temperatureC = temperature / 100.0F;
     pressureHpa = pressure / 100.0F;
+    Serial.printf("MS5611 calculated: pressureRaw=%lu temperatureRaw=%lu temp=%.2f C pressure=%.2f hPa\n",
+                  static_cast<unsigned long>(pressureRaw),
+                  static_cast<unsigned long>(temperatureRaw),
+                  temperatureC,
+                  pressureHpa);
     return true;
 }
 

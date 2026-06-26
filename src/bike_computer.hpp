@@ -12,6 +12,9 @@ struct BikeComputerData
     float pressureHpa = 0.0F;
     float altitudeM = 0.0F;
     bool barometerValid = false;
+    int16_t accelRawX = 0;
+    int16_t accelRawY = 0;
+    int16_t accelRawZ = 0;
     float inclineDegrees = 0.0F;
     float motionG = 0.0F;
     bool imuValid = false;
@@ -24,6 +27,7 @@ struct BikeComputerData
     float courseDeg = 0.0F;
     int satellitesUsed = 0;
     int satellitesInView = 0;
+    bool gpsHasData = false;
     bool gpsValid = false;
     bool gpsTimeValid = false;
 };

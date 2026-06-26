@@ -115,7 +115,10 @@ void renderBikeComputer(uint8_t *framebuffer, const BikeComputerData &data)
     }
     else
     {
-        text(framebuffer, BIKE_UI_GPS_WAITING_X, BIKE_UI_GPS_WAITING_Y, "NO GPS FIX");
+        text(framebuffer,
+             BIKE_UI_GPS_WAITING_X,
+             BIKE_UI_GPS_WAITING_Y,
+             data.gpsHasData ? "NO GPS FIX" : "NO GPS MODULE");
         std::snprintf(value, sizeof(value), "SAT %d/%d", data.satellitesUsed, data.satellitesInView);
         text(framebuffer, BIKE_UI_GPS_WAITING_SATS_X, BIKE_UI_GPS_WAITING_SATS_Y, value);
     }

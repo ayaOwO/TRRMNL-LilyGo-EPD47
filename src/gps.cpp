@@ -6,7 +6,7 @@ namespace
 {
 HardwareSerial GPS(1);
 
-constexpr int GPS_RX_PIN = 48;
+constexpr int GPS_RX_PIN = 47;
 constexpr int GPS_TX_PIN = -1;
 constexpr uint32_t GPS_BAUD = 115200;
 
@@ -182,6 +182,7 @@ void finishLine()
     lineBuffer.trim();
     if (lineBuffer.startsWith("$GP") || lineBuffer.startsWith("$GN"))
     {
+        state.hasData = true;
         parseNmea(lineBuffer);
     }
     lineBuffer = "";

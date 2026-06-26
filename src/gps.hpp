@@ -6,6 +6,7 @@ namespace gps
 {
 struct Data
 {
+    bool hasData = false;
     bool hasFix = false;
     bool hasCoords = false;
     bool hasTime = false;
